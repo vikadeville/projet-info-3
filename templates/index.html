@@ -332,13 +332,13 @@
 
     <div class="card">
         <p class="help-text">
-            Clique d’abord sur la carte pour choisir le point de départ, puis sélectionne une station proposée. Ensuite clique pour choisir l’arrivée, puis sélectionne la station d’arrivée.
+            Clique d’abord sur la carte pour choisir le point de départ (en bleu), puis sélectionne une station proposée (en vert). Ensuite clique pour choisir l’arrivée (en rouge), puis sélectionne la station d’arrivée (en vert).
         </p>
 
         <div class="legend">
-            <div class="legend-item"><span class="dot dot-blue"></span> Marche aller</div>
+            <div class="legend-item"><span class="dot dot-blue"></span> Marche départ</div>
             <div class="legend-item"><span class="dot dot-green"></span> Trajet à vélo</div>
-            <div class="legend-item"><span class="dot dot-red"></span> Marche finale</div>
+            <div class="legend-item"><span class="dot dot-red"></span> Marche arrivée</div>
         </div>
 
         <div id="map"></div>
@@ -380,6 +380,36 @@ let trajectoryLayers = [];
 let phase = "depart";
 let departMarker = null;
 let arriveeMarker = null;
+let departStationMarker = null;
+let arriveeStationMarker = null;
+
+// Icônes colorées
+const blueIcon = new L.Icon({
+    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
+    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+const greenIcon = new L.Icon({
+    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
+    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+const redIcon = new L.Icon({
+    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
+    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
 
 // -------------------------
 // Changement de ville
@@ -415,7 +445,10 @@ map.on("click", function (e) {
         }
 
         departPoint = { lat, lng };
-        departMarker = L.marker([lat, lng]).addTo(map).bindPopup("Départ").openPopup();
+        departMarker = L.marker([lat, lng], { icon: blueIcon })
+            .addTo(map)
+            .bindPopup("Départ")
+            .openPopup();
 
         chargerStations(lat, lng, "depart");
         phase = "stationDepart";
@@ -428,7 +461,10 @@ map.on("click", function (e) {
         }
 
         arriveePoint = { lat, lng };
-        arriveeMarker = L.marker([lat, lng]).addTo(map).bindPopup("Arrivée").openPopup();
+        arriveeMarker = L.marker([lat, lng], { icon: redIcon })
+            .addTo(map)
+            .bindPopup("Arrivée")
+            .openPopup();
 
         chargerStations(lat, lng, "arrivee");
         phase = "stationArrivee";
@@ -470,7 +506,7 @@ function chargerStations(lat, lng, type) {
                     </div>
                 `;
 
-                const marker = L.marker([station.lat, station.lng])
+                const marker = L.marker([station.lat, station.lng], { icon: greenIcon })
                     .addTo(map)
                     .bindPopup(popupHtml);
 
@@ -486,11 +522,29 @@ function chargerStations(lat, lng, type) {
 function selectStation(name, lat, lng, type) {
     if (type === "depart") {
         departStation = { name, lat, lng };
+
+        if (departStationMarker) {
+            map.removeLayer(departStationMarker);
+        }
+
+        departStationMarker = L.marker([lat, lng], { icon: greenIcon })
+            .addTo(map)
+            .bindPopup(`Station de départ : ${name}`);
+
         phase = "arrivee";
     }
 
     if (type === "arrivee") {
         arriveeStation = { name, lat, lng };
+
+        if (arriveeStationMarker) {
+            map.removeLayer(arriveeStationMarker);
+        }
+
+        arriveeStationMarker = L.marker([lat, lng], { icon: greenIcon })
+            .addTo(map)
+            .bindPopup(`Station d'arrivée : ${name}`);
+
         phase = "termine";
     }
 
@@ -531,13 +585,22 @@ function resetRechercheComplete() {
     if (arriveeMarker) {
         map.removeLayer(arriveeMarker);
     }
+    if (departStationMarker) {
+        map.removeLayer(departStationMarker);
+    }
+    if (arriveeStationMarker) {
+        map.removeLayer(arriveeStationMarker);
+    }
 
     departMarker = null;
     arriveeMarker = null;
+    departStationMarker = null;
+    arriveeStationMarker = null;
     departPoint = null;
     arriveePoint = null;
     departStation = null;
     arriveeStation = null;
+
 
     stationsAffichees.forEach(m => map.removeLayer(m));
     stationsAffichees = [];
