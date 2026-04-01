@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Projet Vélo</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/@mapbox/polyline@1.1.1/src/polyline.js"></script>
+
+    <style>
+        :root{
+            --bg:#f6f7fb;
+            --card:#ffffff;
+            --text:#1f2937;
+            --muted:#6b7280;
+            --border:#e5e7eb;
+            --shadow:0 10px 25px rgba(0,0,0,.08);
+            --radius:16px;
+            --green:#16a34a;
+            --red:#dc2626;
+            --blue:#2563eb;
+        }
+
+        *{
+            box-sizing:border-box;
+        }
+
+        body{
+            margin:0;
+            font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            color:var(--text);
+            background:var(--bg);
+            line-height:1.4;
+        }
+
+        .container{
+            max-width:1100px;
+            margin:24px auto;
+            padding:0 16px;
+        }
+
+        .header{
+            display:flex;
+            align-items:flex-start;
+            justify-content:space-between;
+            gap:12px;
+            margin-bottom:14px;
+        }
+
+        .title{
+            margin:0;
+            font-size:28px;
+            letter-spacing:-0.02em;
+        }
+
+        .subtitle{
+            margin:6px 0 0 0;
+            color:var(--muted);
+            font-size:14px;
+        }
+
+        .card{
+            background:var(--card);
+            border:1px solid var(--border);
+            border-radius:var(--radius);
+            box-shadow:var(--shadow);
+            padding:16px;
+            margin-bottom:14px;
+        }
+
+        .controls{
+            display:flex;
+            flex-wrap:wrap;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+        }
+
+        .btns{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+
+        button,
+        .link-btn{
+            border:1px solid var(--border);
+            background:#fff;
+            padding:10px 12px;
+            border-radius:12px;
+            cursor:pointer;
+            font-weight:600;
+            color:var(--text);
+            box-shadow:0 4px 10px rgba(0,0,0,.05);
+            transition:transform .05s ease, filter .15s ease;
+            text-decoration:none;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+        }
+
+        button:hover,
+        .link-btn:hover{
+            filter:brightness(0.99);
+        }
+
+        button:active,
+        .link-btn:active{
+            transform:translateY(1px);
+        }
+
+        button:disabled{
+            opacity:.55;
+            cursor:not-allowed;
+            box-shadow:none;
+        }
+
+        .btn-primary{
+            border-color:#dbeafe;
+            background:#eff6ff;
+            color:#1d4ed8;
+        }
+
+        .btn-success{
+            border-color:#dcfce7;
+            background:#f0fdf4;
+            color:#166534;
+        }
+
+        .btn-danger{
+            border-color:#fee2e2;
+            background:#fef2f2;
+            color:#991b1b;
+        }
+
+        .btn-logout{
+            border-color:#fee2e2;
+            background:#fef2f2;
+            color:#991b1b;
+        }
+
+        select,
+        input{
+            border:1px solid var(--border);
+            border-radius:12px;
+            padding:10px 12px;
+            font-size:14px;
+            background:#fff;
+            color:var(--text);
+        }
+
+        label{
+            font-weight:600;
+        }
+
+        #map{
+            height:75vh;
+            min-height:500px;
+            width:100%;
+            border-radius:var(--radius);
+            overflow:hidden;
+            margin-top:12px;
+        }
+
+        .auth-wrapper{
+            max-width:760px;
+            margin:0 auto;
+        }
+
+        .auth-grid{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:14px;
+        }
+
+        .auth-box h2{
+            margin-top:0;
+            margin-bottom:12px;
+            font-size:20px;
+        }
+
+        .auth-box form{
+            display:flex;
+            flex-direction:column;
+            gap:10px;
+        }
+
+        .user-top{
+            display:flex;
+            flex-wrap:wrap;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:12px;
+        }
+
+        .user-infos{
+            display:grid;
+            gap:8px;
+        }
+
+        .info-line{
+            color:var(--muted);
+            font-size:14px;
+        }
+
+        .info-line strong{
+            color:var(--text);
+        }
+
+        .legend{
+            display:flex;
+            flex-wrap:wrap;
+            gap:10px 16px;
+            font-size:14px;
+            color:var(--muted);
+            margin-top:8px;
+        }
+
+        .legend-item{
+            display:flex;
+            align-items:center;
+            gap:8px;
+        }
+
+        .dot{
+            width:12px;
+            height:12px;
+            border-radius:999px;
+            display:inline-block;
+        }
+
+        .dot-blue{ background:var(--blue); }
+        .dot-green{ background:var(--green); }
+        .dot-red{ background:var(--red); }
+
+        .help-text{
+            font-size:14px;
+            color:var(--muted);
+            margin:0;
+        }
+
+        .leaflet-popup-content button{
+            margin-top:8px;
+            width:100%;
+        }
+
+        @media (max-width: 800px){
+            .auth-grid{
+                grid-template-columns:1fr;
+            }
+
+            #map{
+                min-height:420px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <div class="header">
+        <div>
+            <h1 class="title">Projet Vélo</h1>
+        </div>
+    </div>
+
+    {% if not current_user.is_authenticated %}
+    <div class="auth-wrapper">
+        <div class="card">
+            <h2 style="margin-top:0;">Bienvenue</h2>
+            <p class="help-text" style="margin-bottom:0;">
+                Connecte-toi ou crée un compte pour accéder à la carte de vélos !!
+            </p>
+        </div>
+
+        <div class="auth-grid">
+            <div class="card auth-box">
+                <h2>Se connecter</h2>
+                <form method="POST" action="/login">
+                    <input type="text" name="username" placeholder="Nom d'utilisateur" required>
+                    <input type="password" name="password" placeholder="Mot de passe" required>
+                    <button type="submit" class="btn-primary">Connexion</button>
+                </form>
+            </div>
+
+            <div class="card auth-box">
+                <h2>Créer un compte</h2>
+                <form method="POST" action="/register">
+                    <input type="text" name="username" placeholder="Nom d'utilisateur" required>
+                    <input type="password" name="password" placeholder="Mot de passe" required>
+                    <button type="submit" class="btn-success">Créer le compte</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% else %}
+
+    <div class="card">
+        <div class="user-top">
+            <div class="user-infos">
+                <div><strong>Connecté :</strong> {{ current_user.username }}</div>
+                <div class="info-line">
+                    <strong>Ville préférée :</strong>
+                    {{ current_user.preferedcity if current_user.preferedcity else "Aucune" }}
+                </div>
+                <div class="info-line">
+                    <strong>Dernier trajet :</strong>
+                    {{ current_user.lastitinerary if current_user.lastitinerary else "Aucun trajet enregistré" }}
+                </div>
+            </div>
+
+            <div class="btns">
+                <a href="/logout" class="link-btn btn-logout">Se déconnecter</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card controls">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
+            <label for="villeSelect">Choisis une ville :</label>
+            <select id="villeSelect">
+                <option value="" {% if not current_user.preferedcity %}selected{% endif %}>Choisir une ville</option>
+                <option value="lyon" {% if current_user.preferedcity == "lyon" %}selected{% endif %}>Lyon</option>
+                <option value="toulouse" {% if current_user.preferedcity == "toulouse" %}selected{% endif %}>Toulouse</option>
+                <option value="amiens" {% if current_user.preferedcity == "amiens" %}selected{% endif %}>Amiens</option>
+            </select>
+        </div>
+
+        <div class="btns">
+            <button id="btnReset" class="btn-primary">Nouvelle recherche</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <p class="help-text">
+            Clique d’abord sur la carte pour choisir le point de départ, puis sélectionne une station proposée. Ensuite clique pour choisir l’arrivée, puis sélectionne la station d’arrivée.
+        </p>
+
+        <div class="legend">
+            <div class="legend-item"><span class="dot dot-blue"></span> Marche aller</div>
+            <div class="legend-item"><span class="dot dot-green"></span> Trajet à vélo</div>
+            <div class="legend-item"><span class="dot dot-red"></span> Marche finale</div>
+        </div>
+
+        <div id="map"></div>
+    </div>
+
+    {% endif %}
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+{% if current_user.is_authenticated %}
+<script>
+const villes = {
+    "lyon": [45.7640, 4.8357],
+    "toulouse": [43.6047, 1.4442],
+    "amiens": [49.8941, 2.2958]
+};
+
+const villeSelect = document.getElementById("villeSelect");
+
+const map = L.map("map").setView([46.603354, 1.888334], 6);
+
+const villeInitiale = villeSelect.value;
+if (villeInitiale && villes[villeInitiale]) {
+    map.setView(villes[villeInitiale], 13);
+}
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "OpenStreetMap"
+}).addTo(map);
+
+// Variables globales
+let departPoint = null;
+let arriveePoint = null;
+let departStation = null;
+let arriveeStation = null;
+let stationsAffichees = [];
+let trajectoryLayers = [];
+let phase = "depart";
+let departMarker = null;
+let arriveeMarker = null;
+
+// -------------------------
+// Changement de ville
+// -------------------------
+villeSelect.addEventListener("change", function () {
+    resetRechercheComplete();
+
+    const coord = villes[this.value];
+
+    if (coord) {
+        map.setView(coord, 13);
+        sauvegarderVilleSeulement();
+    } else {
+        map.setView([46.603354, 1.888334], 6);
+    }
+});
+// -------------------------
+// Clic sur la carte
+// -------------------------
+map.on("click", function (e) {
+    const ville = villeSelect.value;
+    if (!ville) {
+        alert("Choisis d'abord une ville.");
+        return;
+    }
+
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
+
+    if (phase === "depart") {
+        if (departMarker) {
+            map.removeLayer(departMarker);
+        }
+
+        departPoint = { lat, lng };
+        departMarker = L.marker([lat, lng]).addTo(map).bindPopup("Départ").openPopup();
+
+        chargerStations(lat, lng, "depart");
+        phase = "stationDepart";
+        return;
+    }
+
+    if (phase === "arrivee") {
+        if (arriveeMarker) {
+            map.removeLayer(arriveeMarker);
+        }
+
+        arriveePoint = { lat, lng };
+        arriveeMarker = L.marker([lat, lng]).addTo(map).bindPopup("Arrivée").openPopup();
+
+        chargerStations(lat, lng, "arrivee");
+        phase = "stationArrivee";
+        return;
+    }
+});
+
+// -------------------------
+// Charger stations
+// -------------------------
+function chargerStations(lat, lng, type) {
+    const ville = villeSelect.value;
+
+    fetch(`/getBikesAround?lat=${lat}&lng=${lng}&ville=${ville}&type=${type}`)
+        .then(res => res.json())
+        .then(data => {
+            stationsAffichees.forEach(m => map.removeLayer(m));
+            stationsAffichees = [];
+
+            if (!Array.isArray(data)) {
+                console.error("Réponse inattendue :", data);
+                return;
+            }
+
+            data.forEach(station => {
+                const safeName = encodeURIComponent(station.name);
+
+                const infoStation = type === "depart"
+                    ? `Vélos disponibles : ${station.velos}`
+                    : `Places libres : ${station.places}`;
+
+                const popupHtml = `
+                    <div>
+                        <b>${station.name}</b><br>
+                        ${infoStation}<br>
+                        <button class="btn-primary" onclick="selectStation(decodeURIComponent('${safeName}'), ${station.lat}, ${station.lng}, '${type}')">
+                            Sélectionner
+                        </button>
+                    </div>
+                `;
+
+                const marker = L.marker([station.lat, station.lng])
+                    .addTo(map)
+                    .bindPopup(popupHtml);
+
+                stationsAffichees.push(marker);
+            });
+        })
+        .catch(err => console.error(err));
+}
+
+// -------------------------
+// Sélection station
+// -------------------------
+function selectStation(name, lat, lng, type) {
+    if (type === "depart") {
+        departStation = { name, lat, lng };
+        phase = "arrivee";
+    }
+
+    if (type === "arrivee") {
+        arriveeStation = { name, lat, lng };
+        phase = "termine";
+    }
+
+    stationsAffichees.forEach(m => map.removeLayer(m));
+    stationsAffichees = [];
+
+    resetTrajets();
+
+    if (departStation && arriveeStation && departPoint && arriveePoint) {
+        calculTrajets();
+    }
+}
+
+window.selectStation = selectStation;
+
+// -------------------------
+// Décodage polyline
+// -------------------------
+function decodeORS(encoded) {
+    return polyline.decode(encoded).map(c => [c[0], c[1]]);
+}
+
+// -------------------------
+// Réinitialiser les trajets
+// -------------------------
+function resetTrajets() {
+    trajectoryLayers.forEach(l => map.removeLayer(l));
+    trajectoryLayers = [];
+}
+
+// -------------------------
+// Réinitialiser toute la recherche
+// -------------------------
+function resetRechercheComplete() {
+    if (departMarker) {
+        map.removeLayer(departMarker);
+    }
+    if (arriveeMarker) {
+        map.removeLayer(arriveeMarker);
+    }
+
+    departMarker = null;
+    arriveeMarker = null;
+    departPoint = null;
+    arriveePoint = null;
+    departStation = null;
+    arriveeStation = null;
+
+    stationsAffichees.forEach(m => map.removeLayer(m));
+    stationsAffichees = [];
+
+    resetTrajets();
+    phase = "depart";
+}
+
+// -------------------------
+// Sauvegarde profil
+// -------------------------
+function sauvegarderProfil(lastitineraryValue) {
+    const ville = villeSelect.value;
+
+    return fetch("/saveProfile", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            preferedcity: ville,
+            lastitinerary: lastitineraryValue
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log("Profil sauvegardé :", data);
+    })
+    .catch(err => console.error(err));
+}
+
+function sauvegarderVilleSeulement() {
+    const ville = villeSelect.value;
+
+    fetch("/saveProfile", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            preferedcity: ville
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log("Ville sauvegardée :", data);
+    })
+    .catch(err => console.error(err));
+}
+
+// -------------------------
+// Calcul des trajets
+// -------------------------
+function calculTrajets() {
+    resetTrajets();
+    let allCoords = [];
+
+    fetch(`/getTrajectory?start_lat=${departPoint.lat}&start_lng=${departPoint.lng}&end_lat=${departStation.lat}&end_lng=${departStation.lng}&mode=foot-walking`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.routes || !data.routes[0]) {
+                throw new Error("Erreur sur le trajet aller à pied");
+            }
+
+            const coords = decodeORS(data.routes[0].geometry);
+            allCoords = allCoords.concat(coords);
+            trajectoryLayers.push(
+                L.polyline(coords, { color: "blue", weight: 5 }).addTo(map)
+            );
+        })
+        .then(() => {
+            return fetch(`/getTrajectory?start_lat=${departStation.lat}&start_lng=${departStation.lng}&end_lat=${arriveeStation.lat}&end_lng=${arriveeStation.lng}&mode=cycling-regular`);
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (!data.routes || !data.routes[0]) {
+                throw new Error("Erreur sur le trajet à vélo");
+            }
+
+            const coords = decodeORS(data.routes[0].geometry);
+            allCoords = allCoords.concat(coords);
+            trajectoryLayers.push(
+                L.polyline(coords, { color: "green", weight: 5 }).addTo(map)
+            );
+        })
+        .then(() => {
+            return fetch(`/getTrajectory?start_lat=${arriveeStation.lat}&start_lng=${arriveeStation.lng}&end_lat=${arriveePoint.lat}&end_lng=${arriveePoint.lng}&mode=foot-walking`);
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (!data.routes || !data.routes[0]) {
+                throw new Error("Erreur sur le trajet final à pied");
+            }
+
+            const coords = decodeORS(data.routes[0].geometry);
+            allCoords = allCoords.concat(coords);
+            trajectoryLayers.push(
+                L.polyline(coords, { color: "red", weight: 5 }).addTo(map)
+            );
+
+            map.fitBounds(allCoords);
+
+            const resumeTrajet = `${departStation.name} -> ${arriveeStation.name}`;
+            return sauvegarderProfil(resumeTrajet);
+        })
+        .catch(err => console.error(err));
+}
+
+// -------------------------
+// Bouton reset
+// -------------------------
+document.getElementById("btnReset").addEventListener("click", function () {
+    resetRechercheComplete();
+});
+</script>
+{% endif %}
+
+</body>
+</html>
