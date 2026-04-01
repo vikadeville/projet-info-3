@@ -303,8 +303,13 @@
                     {{ current_user.preferedcity if current_user.preferedcity else "Aucune" }}
                 </div>
                 <div class="info-line">
-                    <strong>Dernier trajet :</strong>
-                    {{ current_user.lastitinerary if current_user.lastitinerary else "Aucun trajet enregistré" }}
+                    {% if current_user.lastitinerary %}
+                        <button type="button" id="btnLastTrip" class="link-btn btn-success">
+                            Charger le dernier trajet
+                        </button>
+                    {% else %}
+                        Aucun trajet enregistré
+                    {% endif %}
                 </div>
             </div>
 
@@ -358,6 +363,7 @@ const villes = {
 };
 
 const villeSelect = document.getElementById("villeSelect");
+const lastTripRaw = {{ current_user.lastitinerary|tojson if current_user.lastitinerary else 'null' }};
 
 const map = L.map("map").setView([46.603354, 1.888334], 6);
 
@@ -560,6 +566,66 @@ function selectStation(name, lat, lng, type) {
 
 window.selectStation = selectStation;
 
+function chargerDernierTrajet() {
+    if (!lastTripRaw) {
+        alert("Aucun trajet enregistré.");
+        return;
+    }
+
+    let trajet;
+    try {
+        trajet = JSON.parse(lastTripRaw);
+    } catch (e) {
+        alert("Le dernier trajet enregistré est invalide.");
+        console.error(e);
+        return;
+    }
+
+    if (
+        !trajet.ville ||
+        !trajet.departPoint ||
+        !trajet.arriveePoint ||
+        !trajet.departStation ||
+        !trajet.arriveeStation
+    ) {
+        alert("Le dernier trajet est incomplet.");
+        return;
+    }
+
+    resetRechercheComplete();
+
+    // Repositionner la ville
+    villeSelect.value = trajet.ville;
+    if (villes[trajet.ville]) {
+        map.setView(villes[trajet.ville], 13);
+    }
+
+    departPoint = trajet.departPoint;
+    arriveePoint = trajet.arriveePoint;
+    departStation = trajet.departStation;
+    arriveeStation = trajet.arriveeStation;
+
+    // Recréer les marqueurs
+    departMarker = L.marker([departPoint.lat, departPoint.lng], { icon: blueIcon })
+        .addTo(map)
+        .bindPopup("Départ");
+
+    arriveeMarker = L.marker([arriveePoint.lat, arriveePoint.lng], { icon: redIcon })
+        .addTo(map)
+        .bindPopup("Arrivée");
+
+    departStationMarker = L.marker([departStation.lat, departStation.lng], { icon: greenIcon })
+        .addTo(map)
+        .bindPopup(`Station de départ : ${departStation.name}`);
+
+    arriveeStationMarker = L.marker([arriveeStation.lat, arriveeStation.lng], { icon: greenIcon })
+        .addTo(map)
+        .bindPopup(`Station d'arrivée : ${arriveeStation.name}`);
+
+    phase = "termine";
+    calculTrajets();
+}
+
 // -------------------------
 // Décodage polyline
 // -------------------------
@@ -703,8 +769,16 @@ function calculTrajets() {
 
             map.fitBounds(allCoords);
 
-            const resumeTrajet = `${departStation.name} -> ${arriveeStation.name}`;
-            return sauvegarderProfil(resumeTrajet);
+            const trajetComplet = {
+                label: `${departStation.name} -> ${arriveeStation.name}`,
+                ville: villeSelect.value,
+                departPoint,
+                arriveePoint,
+                departStation,
+                arriveeStation
+            };
+
+            return sauvegarderProfil(JSON.stringify(trajetComplet));
         })
         .catch(err => console.error(err));
 }
@@ -715,8 +789,11 @@ function calculTrajets() {
 document.getElementById("btnReset").addEventListener("click", function () {
     resetRechercheComplete();
 });
+const btnLastTrip = document.getElementById("btnLastTrip");
+if (btnLastTrip) {
+    btnLastTrip.addEventListener("click", chargerDernierTrajet);
+}
 </script>
 {% endif %}
-
 </body>
 </html>

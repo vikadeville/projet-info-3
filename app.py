@@ -23,7 +23,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(250), unique=True, nullable=False)
     password = db.Column(db.String(250), nullable=False)
     preferedcity = db.Column(db.String(250), nullable=True)
-    lastitinerary = db.Column(db.String(250), nullable=True)
+    lastitinerary = db.Column(db.Text, nullable=True)
 
 
 # Création des tables si elles n'existent pas
@@ -122,8 +122,7 @@ def save_profile():
         user.preferedcity = city
 
     if itinerary is not None:
-        # On limite la taille pour rester cohérent avec String(250)
-        user.lastitinerary = str(itinerary)[:250]
+        user.lastitinerary = str(itinerary)
 
     db.session.commit()
 
