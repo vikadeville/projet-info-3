@@ -8,16 +8,14 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = "projet_velo"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///db.sqlite"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-# Initialisation login manager et base
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 
 db = SQLAlchemy()
 db.init_app(app)
 
-# -------------------------
-# MODELE UTILISATEUR
-# -------------------------
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(250), unique=True, nullable=False)
@@ -26,28 +24,20 @@ class User(UserMixin, db.Model):
     lastitinerary = db.Column(db.Text, nullable=True)
 
 
-# Création des tables si elles n'existent pas
 with app.app_context():
     db.create_all()
 
 
-# Nécessaire pour Flask-Login
 @login_manager.user_loader
 def loader_user(user_id):
     return db.session.get(User, int(user_id))
 
 
-# -------------------------
-# PAGE PRINCIPALE
-# -------------------------
 @app.route("/")
 def index():
     return render_template("index.html")
 
 
-# -------------------------
-# INSCRIPTION
-# -------------------------
 @app.route("/register", methods=["POST"])
 def register():
     username = request.form.get("username", "").strip()
@@ -66,19 +56,14 @@ def register():
         preferedcity="",
         lastitinerary=""
     )
-    
+
     db.session.add(new_user)
     db.session.commit()
-
-    # Connexion automatique après création du compte
     login_user(new_user)
 
     return redirect(url_for("index"))
 
 
-# -------------------------
-# CONNEXION
-# -------------------------
 @app.route("/login", methods=["POST"])
 def login():
     username = request.form.get("username", "").strip()
@@ -92,25 +77,18 @@ def login():
     return redirect(url_for("index"))
 
 
-# -------------------------
-# DECONNEXION
-# -------------------------
 @app.route("/logout")
 def logout():
     logout_user()
     return redirect(url_for("index"))
 
 
-# -------------------------
-# SAUVEGARDE DU PROFIL
-# -------------------------
 @app.route("/saveProfile", methods=["POST"])
 def save_profile():
     if not current_user.is_authenticated:
         return jsonify({"error": "Utilisateur non connecté"}), 401
 
     data = request.get_json(silent=True) or {}
-
     city = data.get("preferedcity")
     itinerary = data.get("lastitinerary")
 
@@ -134,15 +112,10 @@ def save_profile():
     })
 
 
-# -------------------------
-# PROFIL UTILISATEUR COURANT
-# -------------------------
 @app.route("/getProfile", methods=["GET"])
 def get_profile():
     if not current_user.is_authenticated:
-        return jsonify({
-            "authenticated": False
-        })
+        return jsonify({"authenticated": False})
 
     user = db.session.get(User, current_user.id)
 
@@ -154,10 +127,8 @@ def get_profile():
     })
 
 
-# -------------------------
-# API STATIONS PROCHES
-# -------------------------
 API_KEY = "f2898848aea2a84165d3dd04e96c8e9c78e6f7bd"
+
 
 @app.route("/getBikesAround", methods=["GET"])
 def get_bikes():
@@ -185,36 +156,35 @@ def get_bikes():
     stations = response.json()
     resultat = []
 
-    for s in stations:
-        if s["status"] != "OPEN":
+    for station in stations:
+        if station["status"] != "OPEN":
             continue
 
-        if type_station == "depart" and s["available_bikes"] <= 0:
+        if type_station == "depart" and station["available_bikes"] <= 0:
             continue
 
-        if type_station == "arrivee" and s["available_bike_stands"] <= 0:
+        if type_station == "arrivee" and station["available_bike_stands"] <= 0:
             continue
 
-        lat = s["position"]["lat"]
-        lng = s["position"]["lng"]
+        lat = station["position"]["lat"]
+        lng = station["position"]["lng"]
         distance = math.sqrt((lat - user_lat) ** 2 + (lng - user_lng) ** 2)
 
         resultat.append({
-            "name": s["name"],
+            "name": station["name"],
             "lat": lat,
             "lng": lng,
-            "velos": s["available_bikes"],
-            "places": s["available_bike_stands"],
+            "velos": station["available_bikes"],
+            "places": station["available_bike_stands"],
             "distance": distance
         })
 
     resultat.sort(key=lambda x: x["distance"])
     return jsonify(resultat[:3])
 
-# -------------------------
-# API TRAJET
-# -------------------------
+
 ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImFjODhjOTJiZTljZDQ3Njg5NjA2YzIwYjViZDVjNjM3IiwiaCI6Im11cm11cjY0In0="
+
 
 @app.route("/getTrajectory", methods=["GET"])
 def get_trajectory():
@@ -248,14 +218,13 @@ def get_trajectory():
         "instructions": False
     }
 
-    resp = requests.post(url, json=body, headers=headers)
+    response = requests.post(url, json=body, headers=headers)
 
-    if resp.status_code != 200:
+    if response.status_code != 200:
         return jsonify({"error": "Erreur ORS"}), 500
 
-    return jsonify(resp.json())
+    return jsonify(response.json())
 
 
-# -------------------------
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
