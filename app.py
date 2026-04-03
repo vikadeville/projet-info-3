@@ -15,9 +15,7 @@ login_manager.init_app(app)
 db = SQLAlchemy()
 db.init_app(app)
 
-# -------------------------
 # MODELE UTILISATEUR
-# -------------------------
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(250), unique=True, nullable=False)
@@ -37,17 +35,13 @@ def loader_user(user_id):
     return db.session.get(User, int(user_id))
 
 
-# -------------------------
 # PAGE PRINCIPALE
-# -------------------------
 @app.route("/")
 def index():
     return render_template("index.html")
 
 
-# -------------------------
 # INSCRIPTION
-# -------------------------
 @app.route("/register", methods=["POST"])
 def register():
     username = request.form.get("username", "").strip()
@@ -76,9 +70,7 @@ def register():
     return redirect(url_for("index"))
 
 
-# -------------------------
 # CONNEXION
-# -------------------------
 @app.route("/login", methods=["POST"])
 def login():
     username = request.form.get("username", "").strip()
@@ -92,18 +84,14 @@ def login():
     return redirect(url_for("index"))
 
 
-# -------------------------
 # DECONNEXION
-# -------------------------
 @app.route("/logout")
 def logout():
     logout_user()
     return redirect(url_for("index"))
 
 
-# -------------------------
 # SAUVEGARDE DU PROFIL
-# -------------------------
 @app.route("/saveProfile", methods=["POST"])
 def save_profile():
     if not current_user.is_authenticated:
@@ -134,9 +122,7 @@ def save_profile():
     })
 
 
-# -------------------------
 # PROFIL UTILISATEUR COURANT
-# -------------------------
 @app.route("/getProfile", methods=["GET"])
 def get_profile():
     if not current_user.is_authenticated:
@@ -154,9 +140,7 @@ def get_profile():
     })
 
 
-# -------------------------
 # API STATIONS PROCHES
-# -------------------------
 API_KEY = "f2898848aea2a84165d3dd04e96c8e9c78e6f7bd"
 
 @app.route("/getBikesAround", methods=["GET"])
@@ -211,9 +195,7 @@ def get_bikes():
     resultat.sort(key=lambda x: x["distance"])
     return jsonify(resultat[:3])
 
-# -------------------------
 # API TRAJET
-# -------------------------
 ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImFjODhjOTJiZTljZDQ3Njg5NjA2YzIwYjViZDVjNjM3IiwiaCI6Im11cm11cjY0In0="
 
 @app.route("/getTrajectory", methods=["GET"])
@@ -256,6 +238,5 @@ def get_trajectory():
     return jsonify(resp.json())
 
 
-# -------------------------
 if __name__ == "__main__":
     app.run(debug=True, port=5001)

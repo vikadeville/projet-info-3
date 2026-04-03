@@ -363,6 +363,7 @@ const villes = {
 };
 
 const villeSelect = document.getElementById("villeSelect");
+
 const lastTripRaw = {{ current_user.lastitinerary|tojson if current_user.lastitinerary else 'null' }};
 
 const map = L.map("map").setView([46.603354, 1.888334], 6);
@@ -417,9 +418,7 @@ const redIcon = new L.Icon({
     shadowSize: [41, 41]
 });
 
-// -------------------------
 // Changement de ville
-// -------------------------
 villeSelect.addEventListener("change", function () {
     resetRechercheComplete();
 
@@ -432,9 +431,7 @@ villeSelect.addEventListener("change", function () {
         map.setView([46.603354, 1.888334], 6);
     }
 });
-// -------------------------
 // Clic sur la carte
-// -------------------------
 map.on("click", function (e) {
     const ville = villeSelect.value;
     if (!ville) {
@@ -478,9 +475,7 @@ map.on("click", function (e) {
     }
 });
 
-// -------------------------
 // Charger stations
-// -------------------------
 function chargerStations(lat, lng, type) {
     const ville = villeSelect.value;
 
@@ -522,9 +517,7 @@ function chargerStations(lat, lng, type) {
         .catch(err => console.error(err));
 }
 
-// -------------------------
 // Sélection station
-// -------------------------
 function selectStation(name, lat, lng, type) {
     if (type === "depart") {
         departStation = { name, lat, lng };
@@ -626,24 +619,18 @@ function chargerDernierTrajet() {
     calculTrajets();
 }
 
-// -------------------------
 // Décodage polyline
-// -------------------------
 function decodeORS(encoded) {
     return polyline.decode(encoded).map(c => [c[0], c[1]]);
 }
 
-// -------------------------
 // Réinitialiser les trajets
-// -------------------------
 function resetTrajets() {
     trajectoryLayers.forEach(l => map.removeLayer(l));
     trajectoryLayers = [];
 }
 
-// -------------------------
 // Réinitialiser toute la recherche
-// -------------------------
 function resetRechercheComplete() {
     if (departMarker) {
         map.removeLayer(departMarker);
@@ -675,9 +662,7 @@ function resetRechercheComplete() {
     phase = "depart";
 }
 
-// -------------------------
 // Sauvegarde profil
-// -------------------------
 function sauvegarderProfil(lastitineraryValue) {
     const ville = villeSelect.value;
 
@@ -717,9 +702,7 @@ function sauvegarderVilleSeulement() {
     .catch(err => console.error(err));
 }
 
-// -------------------------
 // Calcul des trajets
-// -------------------------
 function calculTrajets() {
     resetTrajets();
     let allCoords = [];
@@ -783,9 +766,7 @@ function calculTrajets() {
         .catch(err => console.error(err));
 }
 
-// -------------------------
 // Bouton reset
-// -------------------------
 document.getElementById("btnReset").addEventListener("click", function () {
     resetRechercheComplete();
 });
