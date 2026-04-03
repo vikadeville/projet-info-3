@@ -52,6 +52,12 @@
             letter-spacing:-0.02em;
         }
 
+        .subtitle{
+            margin:6px 0 0 0;
+            color:var(--muted);
+            font-size:14px;
+        }
+
         .card{
             background:var(--card);
             border:1px solid var(--border);
@@ -120,6 +126,12 @@
             color:#166534;
         }
 
+        .btn-danger{
+            border-color:#fee2e2;
+            background:#fef2f2;
+            color:#991b1b;
+        }
+
         .btn-logout{
             border-color:#fee2e2;
             background:#fef2f2;
@@ -164,6 +176,12 @@
             margin-top:0;
             margin-bottom:12px;
             font-size:20px;
+        }
+
+        .auth-box form{
+            display:flex;
+            flex-direction:column;
+            gap:10px;
         }
 
         .user-top{
@@ -220,21 +238,6 @@
             margin:0;
         }
 
-        .welcome-title{
-            margin-top:0;
-        }
-
-        .welcome-text{
-            margin-bottom:0;
-        }
-
-        .city-row{
-            display:flex;
-            flex-wrap:wrap;
-            align-items:center;
-            gap:10px;
-        }
-
         .leaflet-popup-content button{
             margin-top:8px;
             width:100%;
@@ -263,8 +266,8 @@
     {% if not current_user.is_authenticated %}
     <div class="auth-wrapper">
         <div class="card">
-            <h2 class="welcome-title">Bienvenue</h2>
-            <p class="help-text welcome-text">
+            <h2 style="margin-top:0;">Bienvenue</h2>
+            <p class="help-text" style="margin-bottom:0;">
                 Connecte-toi ou crée un compte pour accéder à la carte de vélos !!
             </p>
         </div>
@@ -317,7 +320,7 @@
     </div>
 
     <div class="card controls">
-        <div class="city-row">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
             <label for="villeSelect">Choisis une ville :</label>
             <select id="villeSelect">
                 <option value="" {% if not current_user.preferedcity %}selected{% endif %}>Choisir une ville</option>
@@ -373,6 +376,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "OpenStreetMap"
 }).addTo(map);
 
+// Variables globales
 let departPoint = null;
 let arriveePoint = null;
 let departStation = null;
@@ -385,6 +389,7 @@ let arriveeMarker = null;
 let departStationMarker = null;
 let arriveeStationMarker = null;
 
+// Icônes colorées
 const blueIcon = new L.Icon({
     iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
     shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
@@ -412,6 +417,9 @@ const redIcon = new L.Icon({
     shadowSize: [41, 41]
 });
 
+// -------------------------
+// Changement de ville
+// -------------------------
 villeSelect.addEventListener("change", function () {
     resetRechercheComplete();
 
@@ -424,7 +432,9 @@ villeSelect.addEventListener("change", function () {
         map.setView([46.603354, 1.888334], 6);
     }
 });
-
+// -------------------------
+// Clic sur la carte
+// -------------------------
 map.on("click", function (e) {
     const ville = villeSelect.value;
     if (!ville) {
@@ -468,6 +478,9 @@ map.on("click", function (e) {
     }
 });
 
+// -------------------------
+// Charger stations
+// -------------------------
 function chargerStations(lat, lng, type) {
     const ville = villeSelect.value;
 
@@ -509,6 +522,9 @@ function chargerStations(lat, lng, type) {
         .catch(err => console.error(err));
 }
 
+// -------------------------
+// Sélection station
+// -------------------------
 function selectStation(name, lat, lng, type) {
     if (type === "depart") {
         departStation = { name, lat, lng };
@@ -578,6 +594,7 @@ function chargerDernierTrajet() {
 
     resetRechercheComplete();
 
+    // Repositionner la ville
     villeSelect.value = trajet.ville;
     if (villes[trajet.ville]) {
         map.setView(villes[trajet.ville], 13);
@@ -588,6 +605,7 @@ function chargerDernierTrajet() {
     departStation = trajet.departStation;
     arriveeStation = trajet.arriveeStation;
 
+    // Recréer les marqueurs
     departMarker = L.marker([departPoint.lat, departPoint.lng], { icon: blueIcon })
         .addTo(map)
         .bindPopup("Départ");
@@ -608,15 +626,24 @@ function chargerDernierTrajet() {
     calculTrajets();
 }
 
+// -------------------------
+// Décodage polyline
+// -------------------------
 function decodeORS(encoded) {
     return polyline.decode(encoded).map(c => [c[0], c[1]]);
 }
 
+// -------------------------
+// Réinitialiser les trajets
+// -------------------------
 function resetTrajets() {
     trajectoryLayers.forEach(l => map.removeLayer(l));
     trajectoryLayers = [];
 }
 
+// -------------------------
+// Réinitialiser toute la recherche
+// -------------------------
 function resetRechercheComplete() {
     if (departMarker) {
         map.removeLayer(departMarker);
@@ -640,6 +667,7 @@ function resetRechercheComplete() {
     departStation = null;
     arriveeStation = null;
 
+
     stationsAffichees.forEach(m => map.removeLayer(m));
     stationsAffichees = [];
 
@@ -647,6 +675,9 @@ function resetRechercheComplete() {
     phase = "depart";
 }
 
+// -------------------------
+// Sauvegarde profil
+// -------------------------
 function sauvegarderProfil(lastitineraryValue) {
     const ville = villeSelect.value;
 
@@ -686,6 +717,9 @@ function sauvegarderVilleSeulement() {
     .catch(err => console.error(err));
 }
 
+// -------------------------
+// Calcul des trajets
+// -------------------------
 function calculTrajets() {
     resetTrajets();
     let allCoords = [];
@@ -749,10 +783,12 @@ function calculTrajets() {
         .catch(err => console.error(err));
 }
 
+// -------------------------
+// Bouton reset
+// -------------------------
 document.getElementById("btnReset").addEventListener("click", function () {
     resetRechercheComplete();
 });
-
 const btnLastTrip = document.getElementById("btnLastTrip");
 if (btnLastTrip) {
     btnLastTrip.addEventListener("click", chargerDernierTrajet);
